@@ -1,0 +1,56 @@
+import requests
+from bs4 import BeautifulSoup
+import smtplib
+import schedule
+import time
+
+# URL of the hotel page
+url = "https://www.expedia.com/New-York-Hotels-Holiday-Inn-Express-New-York-Manhattan-West-Side.h5509220.Hotel-Information?chkin=2023-09-06&chkout=2023-09-07&x_pwa=1&rfrr=HSR&pwa_ts=1693360494419&referrerUrl=aHR0cHM6Ly93d3cuZXhwZWRpYS5jb20vSG90ZWwtU2VhcmNo&useRewards=true&rm1=a2&regionId=6203474&destination=Hell%27s+Kitchen%2C+New+York%2C+New+York%2C+United+States+of+America&destType=BOUNDING_BOX&neighborhoodId=129440&latLong=40.76173%2C-73.99367&sort=RECOMMENDED&top_dp=186&top_cur=USD&userIntent=&selectedRoomType=200228466&selectedRatePlan=390698786&searchId=dc7e742d-05ca-46b9-b599-448379641774"
+
+# Email configuration
+smtp_server = "smtp.gmail.com"
+smtp_port = 587
+smtp_username = "your_email@gmail.com"
+smtp_password = "your_email_password"
+recipient_email = "lisaqiyali@gmail.com"
+
+def get_hotel_price():
+    response = requests.get(url)
+    soup = BeautifulSoup(response.content, "html.parser")
+    
+    # Find the element containing the price
+    price_element = soup.find("span", class_="current-price")  # Update the class or tag as needed
+    
+    if price_element:
+        price = price_element.text.strip()
+        return price
+    else:
+        return "Price not found"
+
+def send_email(subject, message):
+    try:
+        server = smtplib.SMTP(smtp_server, smtp_port)
+        server.starttls()
+        server.login(smtp_username, smtp_password)
+        
+        email_message = f"Subject: {subject}\n\n{message}"
+        
+        server.sendmail(smtp_username, recipient_email, email_message)
+        print("Email sent successfully")
+    except Exception as e:
+        print("An error occurred while sending the email:", str(e))
+    finally:
+        server.quit()
+
+def monitor_prices_and_send_email():
+    price = get_hotel_price()
+    subject = "Hotel Price Update"
+    message = f"The current price of the hotel room is {price}"
+    send_email(subject, message)
+
+# Schedule the task to run daily
+schedule.every().day.at("08:00").do(monitor_prices_and_send_email)
+
+while True:
+    schedule.run_pending()
+    time.sleep(1)
